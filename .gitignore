@@ -1,0 +1,13 @@
+.direnv/
+result
+result-*
+__pycache__/
+node_modules/
+dist/
+coverage/
+.visual-qa/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
