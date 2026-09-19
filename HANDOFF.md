@@ -48,6 +48,15 @@ Keep the public tool surface deliberately small:
 
 Use MCP progress notifications and resource links for longer runs. Validate every input and output with explicit schemas. Prefer an API that remains useful from both MCP clients and a future CLI.
 
+## Packaging and agent-integration contract
+
+- Provide a `visual-qa-mcp` executable with a `mcp` subcommand that runs a stdio MCP server: `visual-qa-mcp mcp`.
+- Expose the executable as `packages.<system>.default` from `flake.nix` so a NixOS host can pin and install it.
+- Honor `PLAYWRIGHT_BROWSERS_PATH`; do not download browsers implicitly on NixOS.
+- Keep stdout protocol-clean while serving MCP. Diagnostics belong on stderr.
+- Exit nonzero on invalid configuration or failed startup rather than advertising an unusable server.
+- Native Codex and OpenCode registration belongs to `agent-configuration`. The consuming `host-config` supplies the pinned package and enables `programs.coding-agents.visualQa` only after this executable contract is implemented.
+
 ## Evidence pipeline
 
 For every requested route, scenario capture point, state, and viewport:

@@ -21,6 +21,10 @@ eventual capture layer must accept a Nix-provided Playwright browser path.
 
 Read [HANDOFF.md](HANDOFF.md) before implementing.
 
+The future integration contract is `visual-qa-mcp mcp` over stdio, packaged as
+the flake's default package. Agent registration lives in `agent-configuration`;
+the consuming NixOS host owns package pinning and activation.
+
 ## Development shell
 
 ```sh
