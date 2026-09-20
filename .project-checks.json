@@ -23,9 +23,16 @@
       "profiles": ["fast"]
     },
     {
-      "name": "typescript",
-      "argv": ["pnpm", "check"],
-      "requires": ["pnpm"],
+      "name": "bun-check",
+      "argv": ["bun", "run", "check"],
+      "requires": ["bun"],
+      "timeout_seconds": 600,
+      "profiles": ["fast"]
+    },
+    {
+      "name": "build",
+      "argv": ["bun", "run", "build"],
+      "requires": ["bun"],
       "timeout_seconds": 300,
       "profiles": ["fast"]
     },
@@ -33,7 +40,7 @@
       "name": "flake-check",
       "argv": ["nix", "flake", "check"],
       "requires": ["nix"],
-      "timeout_seconds": 900,
+      "timeout_seconds": 1800,
       "profiles": ["full"]
     }
   ],

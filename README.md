@@ -1,41 +1,189 @@
 # visual-qa-mcp
 
-Private project scaffold for an MCP server that gives coding agents an
-evidence-backed visual QA loop for any user interface rendered in a browser.
+An MCP server that gives coding agents a closed, evidence-backed visual QA loop
+for browser-based user interfaces: inspect a running application, read compact
+findings with screenshots, fix one thing, and recheck only the evidence that the
+fix could affect.
 
-The repository currently contains project configuration and the implementation
-brief only. There is deliberately no MCP implementation yet.
+The implementation follows [HANDOFF.md](HANDOFF.md). The tool surface is
+deliberately small, the domain layer is transport-independent, and every finding
+records which evidence produced it.
 
 ## Intended stack
 
-- TypeScript on Node.js 22
-- Model Context Protocol TypeScript SDK
-- Playwright for deterministic browser capture and viewport emulation
-- axe-core for accessibility evidence
-- screenshot baselines and pixel diffs for regression evidence
-- an optional vision-model adapter for design critique
+- TypeScript on Node.js 22, package management with Bun
+- Model Context Protocol TypeScript SDK (stdio transport)
+- Playwright for deterministic capture and viewport emulation
+- axe-core for automated accessibility evidence
+- pixelmatch/pngjs for screenshot baselines and deterministic diffs
+- an optional vision-review adapter (a deterministic fake ships for tests)
 
-The server is Node-based, but inspected projects remain framework- and
-package-manager-independent. Nix supplies the development toolchain and the
-eventual capture layer must accept a Nix-provided Playwright browser path.
+The inspected project keeps its own framework, package manager and preview
+command: this server never assumes or rewrites them. The server itself is
+Node-based and Nix-friendly; Chromium is always supplied by the environment
+(`PLAYWRIGHT_BROWSERS_PATH` or an explicit path), never downloaded implicitly.
 
-Read [HANDOFF.md](HANDOFF.md) before implementing.
-
-The future integration contract is `visual-qa-mcp mcp` over stdio, packaged as
-the flake's default package. Agent registration lives in `agent-configuration`;
-the consuming NixOS host owns package pinning and activation.
-
-## Development shell
+## Development
 
 ```sh
 nix develop
-pnpm install --frozen-lockfile
-pnpm check
+bun install --frozen-lockfile
+bun run check          # biome lint + tsc --noEmit + bun test
+bun run build          # tsc -p tsconfig.build.json -> dist/
 ```
 
 Repository-wide checks are declared in `.project-checks.json`:
 
 ```sh
-project-check fast
-project-check full
+project-check fast     # nix fmt --ci, statix, deadnix, bun run check, build
+project-check full     # additionally: nix flake check
 ```
+
+Browser-backed integration tests are skipped with an explicit diagnostic when no
+Chromium is available, for example outside `nix develop`.
+
+## MCP surface
+
+| Tool | Purpose |
+| --- | --- |
+| `visual_inspect` | Capture the configured routes, named states and viewport matrix — or one ad-hoc `url` — and return a run ID plus a compact finding summary. |
+| `visual_get_evidence` | Return structured evidence for selected findings or captures, optionally with a bounded set of screenshots. |
+| `visual_recheck` | Recapture only the captures behind the selected finding IDs and classify each as `fixed`, `improved`, `unchanged`, `regressed` or `needs_review`. |
+| `visual_annotate` | Render numbered annotation overlays for selected findings and refresh the static HTML report. |
+| `visual_approve_baseline` | Explicitly approve captured screenshots as regression baselines. Never runs automatically. |
+
+Screenshots are returned as MCP image content or as `visual-qa://` resource
+links. Long runs emit MCP progress notifications.
+
+### CLI
+
+The same service is reachable from the command line, which keeps the domain layer
+honest about not depending on MCP:
+
+```sh
+visual-qa-mcp mcp                       # stdio MCP server
+visual-qa-mcp inspect --json
+visual-qa-mcp inspect --url http://localhost:4321/pricing --viewport mobile
+visual-qa-mcp recheck --findings fnd_…,fnd_…
+visual-qa-mcp annotate --run latest --severity high
+visual-qa-mcp approve-baseline --run latest --viewport mobile
+visual-qa-mcp validate-config
+```
+
+## Configuration
+
+The server looks for `visual-qa.config.json`, `.visual-qa/config.json` or
+`.visual-qa.json` in the working directory, or takes an explicit `--config`.
+An unknown top-level key is an error, so typos cannot be silently ignored.
+
+```json
+{
+  "name": "my-site",
+  "baseUrl": "http://localhost:4321",
+  "routes": [
+    { "path": "/" },
+    {
+      "path": "/pricing",
+      "scenarios": [
+        { "name": "default" },
+        { "name": "annual", "actions": [{ "type": "click", "selector": "[data-billing='annual']" }] }
+      ]
+    }
+  ],
+  "viewports": [
+    { "name": "mobile", "width": 375, "height": 812, "isMobile": true, "hasTouch": true },
+    { "name": "tablet", "width": 768, "height": 1024 },
+    { "name": "desktop", "width": 1440, "height": 900 }
+  ],
+  "security": { "allowRemote": false, "allowedHosts": [], "blockRequestsToOtherOrigins": true },
+  "redaction": { "selectors": ["[data-secret]"], "patterns": ["sk-[A-Za-z0-9]+"] },
+  "axe": { "enabled": true, "tags": ["wcag2a", "wcag2aa", "best-practice"] },
+  "compare": { "threshold": 0.1, "maxDiffRatio": 0.001 },
+  "capture": { "fullPage": true, "maxSemanticElements": 400 },
+  "storage": { "root": ".visual-qa", "keepRuns": 20 },
+  "vision": { "adapter": "none", "allowScreenshots": false }
+}
+```
+
+Omit `viewports` to get the documented default matrix (375×812, 768×1024,
+1440×900). Any additional width a project already enforces can be added
+explicitly, for example:
+
+```json
+"viewports": [
+  { "name": "mobile", "width": 375, "height": 812, "isMobile": true, "hasTouch": true },
+  { "name": "tablet", "width": 768, "height": 1024 },
+  { "name": "desktop", "width": 1440, "height": 900 },
+  { "name": "desktop-wide", "width": 1280, "height": 800 },
+  { "name": "desktop-xxl", "width": 1920, "height": 1080 }
+]
+```
+
+### Preview commands
+
+Instead of `baseUrl`, a target may let the server start its own preview process.
+The command is taken verbatim from configuration:
+
+```json
+{
+  "preview": {
+    "command": ["bun", "run", "preview", "--", "--port", "4321"],
+    "url": "http://localhost:4321/",
+    "cwd": ".",
+    "readyTimeoutMs": 60000
+  },
+  "routes": [{ "path": "/" }]
+}
+```
+
+The process group is terminated when the run finishes, so no preview server is
+left behind.
+
+## Workflows
+
+See [docs/workflows.md](docs/workflows.md) for an Astro landing page workflow, a
+stateful application workflow and the security model.
+
+## Architecture
+
+```
+src/
+  config/        zod schemas, loading, defaults
+  security/      navigation policy, redaction
+  capture/       browser launch, readiness/stability, semantic DOM, ARIA, axe, runtime errors
+  domain/        finding schema, stable IDs, deterministic rules, recheck classification
+  compare/       pixel diff, baselines and explicit approval
+  review/        vision adapter interface, deterministic fake, claim downgrade rules
+  annotate/      annotation overlays, static HTML report
+  storage/       run persistence, artifact paths, finding history
+  mcp/           tool registration and MCP content shaping
+  cli/           command line entry points
+  service.ts     transport-independent orchestration used by MCP and CLI
+```
+
+Evidence lives under `.visual-qa/runs/<run-id>/` (`manifest.json`,
+`findings.json`, `captures.json`, `artifacts/`, `report.html`), approved baselines
+under `.visual-qa/baselines/`, and cross-run finding history under
+`.visual-qa/state/findings.json`. Runtime state is gitignored.
+
+### Findings
+
+Each finding carries a stable ID (derived from route, scenario, viewport, rule
+and origin — never from a run), severity, category, observation, expected
+outcome, evidence, selector and bounding box where available, a suggested
+direction, confidence, origin (`deterministic_rule`, `accessibility_engine`,
+`screenshot_diff`, `vision_review`), and its recheck history.
+
+Deterministic evidence and model judgement stay distinguishable: findings from a
+review adapter are never marked verified, and claims that point at elements which
+were not captured are downgraded to low-confidence, informational suggestions.
+
+## Packaging
+
+`flake.nix` exposes `packages.<system>.default`, a `visual-qa-mcp` executable
+with the `mcp` subcommand. The wrapper uses Node, sets
+`PLAYWRIGHT_BROWSERS_PATH` as a *default* (so an externally supplied value still
+wins) and never downloads browsers. `nix flake check` builds it.
+
+Note: Nix flakes only see git-tracked files. Build or check the package after
+the sources are committed, or use a path reference (`nix build path:.#default`).

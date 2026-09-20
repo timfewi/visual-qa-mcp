@@ -1,0 +1,16 @@
+[install]
+# Dependencies are pinned exactly; verification and packaging pass
+# `--frozen-lockfile` explicitly instead of forcing it for every local command.
+exact = true
+
+[test]
+# Nix store links and build output trees are not part of this project's test
+# surface. Keep them out of discovery so `bun test` only reports our own specs.
+pathIgnorePatterns = [
+  ".direnv/**",
+  "dist/**",
+  "node_modules/**",
+  "result/**",
+  "result-*/**",
+  ".visual-qa/**",
+]
