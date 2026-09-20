@@ -13,7 +13,7 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
-      node = pkgs.nodejs_22;
+      node = pkgs.nodejs_24;
 
       # Browsers are always supplied by Nix. The wrapper below only sets a
       # default, so an externally provided PLAYWRIGHT_BROWSERS_PATH wins.
@@ -53,7 +53,7 @@
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = "sha256-qoFsxGJwkwFPURfUuuBBo1AHmz3/IeoNPRivK0uou/c=";
+        outputHash = "sha256-/BIBpPY/7LYQJSAQ3nP67F89EY3b2j5eF3gm/vxiweg=";
       };
 
       visualQaMcp = pkgs.stdenvNoCC.mkDerivation {
@@ -110,7 +110,7 @@
           jq
           just
           nixfmt
-          nodejs_22
+          nodejs_24
           playwright-driver.browsers
           ripgrep
           statix

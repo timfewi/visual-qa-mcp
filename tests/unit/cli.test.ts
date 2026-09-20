@@ -87,6 +87,33 @@ describe("CLI commands", () => {
     }
   });
 
+  test("keeps non-mcp commands strict without a configuration", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "visual-qa-cli-strict-"));
+    const previous = process.cwd();
+    process.chdir(directory);
+    try {
+      const { errors, io } = capture();
+      expect(await runCli(["inspect"], io)).toBe(2);
+      expect(errors.join("\n")).toContain("No visual QA configuration found");
+    } finally {
+      process.chdir(previous);
+    }
+  });
+
+  test("keeps an explicitly named missing configuration strict", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "visual-qa-cli-explicit-"));
+    const previous = process.cwd();
+    process.chdir(directory);
+    try {
+      const { errors, io } = capture();
+      const code = await runCli(["validate-config", "--config", "missing.json"], io);
+      expect(code).toBe(2);
+      expect(errors.join("\n")).toContain("Cannot read configuration");
+    } finally {
+      process.chdir(previous);
+    }
+  });
+
   test("validates a configuration and reports routes and viewports", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "visual-qa-cli-"));
     const configPath = path.join(directory, "visual-qa.config.json");

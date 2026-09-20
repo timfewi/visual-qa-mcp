@@ -6,6 +6,7 @@ import { visualQaConfigSchema, type VisualQaConfig } from "./schema.js";
 /** File names probed when no explicit config path is given. */
 export const CONFIG_FILE_CANDIDATES = [
   "visual-qa.config.json",
+  ".visual-qa.config.json",
   ".visual-qa/config.json",
   ".visual-qa.json",
 ] as const;

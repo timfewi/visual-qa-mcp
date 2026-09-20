@@ -1,4 +1,5 @@
 import { chromium, type Browser, type BrowserContext } from "playwright";
+import axeCore from "axe-core";
 
 import type { VisualQaConfig, Viewport } from "../config/schema.js";
 import type { Logger } from "../logging.js";
@@ -83,6 +84,9 @@ export async function createContext(
     timezoneId: config.browser.timezoneId,
     colorScheme: config.browser.colorScheme,
     reducedMotion: config.browser.reducedMotion,
+    // The inspected page keeps its own Content-Security-Policy: the collector
+    // and axe-core are injected through the context (CDP init scripts), which a
+    // page's `script-src` policy does not block.
     bypassCSP: false,
     // Service workers make captures non-deterministic across runs.
     serviceWorkers: "block",
@@ -135,6 +139,13 @@ export async function createContext(
       })();
     `,
   });
+
+  // axe-core is injected through the context rather than page.addScriptTag:
+  // injecting inline script into the page is subject to its content security
+  // policy, which makes every capture fail on sites that send `script-src`.
+  if (config.axe.enabled) {
+    await context.addInitScript({ content: axeCore.source });
+  }
 
   return {
     context,

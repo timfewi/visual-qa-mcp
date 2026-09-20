@@ -119,6 +119,34 @@ describe("configuration loading", () => {
     expect(loaded.path).toBe(path.join(directory, "visual-qa.config.json"));
   });
 
+  test("discovers the .visual-qa.config.json alternative", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "visual-qa-config-alt-"));
+    await writeFile(
+      path.join(directory, ".visual-qa.config.json"),
+      JSON.stringify({ ...minimal, name: "alternate" }),
+      "utf8",
+    );
+    const loaded = await loadConfig(undefined, directory);
+    expect(loaded.config.name).toBe("alternate");
+    expect(loaded.path).toBe(path.join(directory, ".visual-qa.config.json"));
+  });
+
+  test("prefers visual-qa.config.json over the alternatives", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "visual-qa-config-order-"));
+    await writeFile(
+      path.join(directory, "visual-qa.config.json"),
+      JSON.stringify({ ...minimal, name: "primary" }),
+      "utf8",
+    );
+    await writeFile(
+      path.join(directory, ".visual-qa.config.json"),
+      JSON.stringify({ ...minimal, name: "alternate" }),
+      "utf8",
+    );
+    const loaded = await loadConfig(undefined, directory);
+    expect(loaded.config.name).toBe("primary");
+  });
+
   test("fails with an actionable message when no configuration exists", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "visual-qa-config-empty-"));
     await expect(resolveConfigPath(undefined, directory)).rejects.toThrow(

@@ -1,9 +1,14 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 import { createLogger, type LogLevel } from "../logging.js";
-import { buildMcpServer, SERVER_NAME, SERVER_VERSION } from "../mcp/server.js";
+import {
+  buildMcpServer,
+  buildUnconfiguredMcpServer,
+  SERVER_NAME,
+  SERVER_VERSION,
+} from "../mcp/server.js";
 import { VisualQaService } from "../service.js";
-import { ConfigError } from "../config/load.js";
+import { CONFIG_FILE_CANDIDATES, ConfigError } from "../config/load.js";
 import { SEVERITY_ORDER, type Severity } from "../domain/schema.js";
 
 export interface CliIo {
@@ -278,11 +283,33 @@ async function runMcpServer(
   args: ParsedArgs,
   logger: ReturnType<typeof createLogger>,
 ): Promise<number> {
-  const service = await VisualQaService.create({
-    configPath: flagValue(args, "config"),
-    cwd: process.cwd(),
-    logger,
-  });
+  const configPath = flagValue(args, "config");
+  let service: VisualQaService;
+  try {
+    service = await VisualQaService.create({ configPath, cwd: process.cwd(), logger });
+  } catch (error) {
+    // A harness starts every registered stdio server in every workspace, so a
+    // missing (or broken) configuration must not look like a crashed transport.
+    // Degrade to a diagnostic-only server instead. An explicit --config is the
+    // operator's deliberate choice and stays strict.
+    if (configPath !== undefined || !(error instanceof ConfigError)) {
+      throw error;
+    }
+    logger.warn("visual QA is not configured; serving diagnostics only", {
+      cwd: process.cwd(),
+      reason: error.message,
+    });
+    const reason =
+      error.issues.length > 0 ? `${error.message}: ${error.issues.join("; ")}` : error.message;
+    const unconfigured = buildUnconfiguredMcpServer({
+      directory: process.cwd(),
+      reason,
+      configFileCandidates: CONFIG_FILE_CANDIDATES,
+    });
+    await unconfigured.connect(new StdioServerTransport());
+    return 0;
+  }
+
   const server = buildMcpServer({ service, logger });
   const transport = new StdioServerTransport();
   await server.connect(transport);

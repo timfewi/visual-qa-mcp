@@ -9,7 +9,8 @@ assume the MCP server is registered with `visual-qa-mcp mcp` over stdio and that
 A landing page is the smallest deterministic proving ground: one route, a
 handful of states, three viewports.
 
-`.visual-qa/config.json` inside the Astro project:
+`.visual-qa.config.json` (or `visual-qa.config.json`, `.visual-qa/config.json`,
+`.visual-qa.json`) inside the Astro project:
 
 ```json
 {

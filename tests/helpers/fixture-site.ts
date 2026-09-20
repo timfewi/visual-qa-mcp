@@ -90,6 +90,16 @@ export async function startFixtureSite(): Promise<FixtureSite> {
       response.end(cleanPage());
       return;
     }
+    if (url === "/csp" || url.startsWith("/csp?")) {
+      // A strict policy that blocks inline scripts, as sent by hardened sites.
+      // The collector and axe-core must be injected in a way this does not block.
+      response.writeHead(200, {
+        "content-type": "text/html; charset=utf-8",
+        "content-security-policy": "script-src 'self'",
+      });
+      response.end(cleanPage());
+      return;
+    }
     if (url === "/" || url.startsWith("/?")) {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       response.end(mode === "broken" ? brokenPage() : cleanPage());

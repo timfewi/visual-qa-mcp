@@ -31,6 +31,7 @@ async function buildHarness(): Promise<Harness> {
     routes: [
       { path: "/", name: "home", scenarios: [{ name: "default" }] },
       { path: "/ok", name: "ok" },
+      { path: "/csp", name: "csp" },
     ],
     viewports: [
       { name: "mobile", width: 375, height: 812, isMobile: true, hasTouch: true },
@@ -302,6 +303,19 @@ describe.skipIf(skip)("inspect → evidence → annotate → baseline → rechec
       await expect(
         harness.service.recheck({ runId: "latest", findingIds: ["fnd_does_not_exist"] }),
       ).rejects.toThrow(/None of the requested finding IDs/);
+    },
+    TEST_TIMEOUT,
+  );
+
+  test(
+    "captures a page whose content security policy blocks inline scripts",
+    async () => {
+      const run = await harness.service.inspect({ routes: ["/csp"] });
+      expect(run.status).toBe("completed");
+      const evidence = await harness.service.getEvidence({ runId: run.runId, routes: ["/csp"] });
+      const capture = evidence.captures.find((entry) => entry.route === "/csp");
+      expect(capture?.status).toBe("captured");
+      expect(capture?.axe).toBeDefined();
     },
     TEST_TIMEOUT,
   );

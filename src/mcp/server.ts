@@ -146,6 +146,65 @@ export interface McpServerOptions {
   readonly logger: Logger;
 }
 
+export interface UnconfiguredMcpServerOptions {
+  /** Directory the server was started in; reported back to the caller. */
+  readonly directory: string;
+  /** Why no service could be created (missing or invalid configuration). */
+  readonly reason: string;
+  /** Config file names the server looks for, in discovery order. */
+  readonly configFileCandidates: readonly string[];
+}
+
+/**
+ * Build the diagnostic-only MCP server used when a workspace has no usable
+ * visual QA configuration.
+ *
+ * A harness starts every registered stdio server in every workspace. Exiting at
+ * startup would surface as a transport failure ("Connection closed") in
+ * workspaces that are simply not visual QA targets. This server instead
+ * completes the handshake, exposes no capture tool, and answers a single
+ * read-only status tool so an agent can explain what is missing.
+ */
+export function buildUnconfiguredMcpServer(options: UnconfiguredMcpServerOptions): McpServer {
+  const { directory, reason, configFileCandidates } = options;
+  const server = new McpServer(
+    { name: SERVER_NAME, version: SERVER_VERSION },
+    {
+      instructions:
+        "This workspace has no usable visual QA configuration, so no capture, evidence or baseline tools are " +
+        "available. Call visual_status to see what is missing.",
+    },
+  );
+
+  server.registerTool(
+    "visual_status",
+    {
+      title: "Visual QA status",
+      description:
+        "Report whether visual QA is configured for this workspace and what is missing. Read-only; no browser is started.",
+      inputSchema: {},
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async () =>
+      textResult(
+        [
+          "Visual QA is not configured for this workspace, so no visual_* capture tools are available.",
+          `Directory: ${directory}`,
+          `Reason: ${reason}`,
+          `Add one of these configuration files to the workspace root: ${configFileCandidates.join(", ")}.`,
+          "Validate a configuration file with `visual-qa-mcp validate-config` before relying on it.",
+        ].join("\n"),
+      ),
+  );
+
+  return server;
+}
+
 /**
  * Build the MCP server.
  *

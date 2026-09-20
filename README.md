@@ -11,7 +11,7 @@ records which evidence produced it.
 
 ## Intended stack
 
-- TypeScript on Node.js 22, package management with Bun
+- TypeScript on Node.js 24, package management with Bun
 - Model Context Protocol TypeScript SDK (stdio transport)
 - Playwright for deterministic capture and viewport emulation
 - axe-core for automated accessibility evidence
@@ -72,9 +72,16 @@ visual-qa-mcp validate-config
 
 ## Configuration
 
-The server looks for `visual-qa.config.json`, `.visual-qa/config.json` or
-`.visual-qa.json` in the working directory, or takes an explicit `--config`.
-An unknown top-level key is an error, so typos cannot be silently ignored.
+The server looks for `visual-qa.config.json`, `.visual-qa.config.json`,
+`.visual-qa/config.json` or `.visual-qa.json` in the working directory, or takes
+an explicit `--config`. An unknown top-level key is an error, so typos cannot be
+silently ignored.
+
+A workspace without a configuration is a normal state, not a failure: the `mcp`
+command still completes the handshake and serves a single read-only
+`visual_status` tool that reports what is missing. Other commands such as
+`inspect` and `validate-config` remain strict and exit nonzero without a
+configuration.
 
 ```json
 {

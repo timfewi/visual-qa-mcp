@@ -1,4 +1,3 @@
-import axeCore from "axe-core";
 import type { Page } from "playwright";
 
 import { type AxeResult, axeResultSchema } from "../domain/schema.js";
@@ -16,7 +15,6 @@ export interface AxeOptions {
  * automated evidence, never as complete WCAG validation.
  */
 export async function runAxe(page: Page, options: AxeOptions): Promise<AxeResult> {
-  await page.addScriptTag({ content: axeCore.source });
   const raw = await page.evaluate(
     async (opts) => {
       interface AxeNodeLike {
