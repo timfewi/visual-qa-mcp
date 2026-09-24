@@ -46,7 +46,9 @@ export async function launchBrowser(
     args: [...DETERMINISTIC_LAUNCH_ARGS],
     timeout: config.browser.launchTimeoutMs,
     ...(executablePath !== undefined ? { executablePath } : {}),
-    ...(config.browser.channel !== undefined ? { channel: config.browser.channel } : {}),
+    ...(config.browser.channel !== undefined
+      ? { channel: config.browser.channel }
+      : {}),
   };
 
   const browser = await chromium.launch(launchOptions);
@@ -56,7 +58,10 @@ export async function launchBrowser(
       : browsersPath !== undefined
         ? `PLAYWRIGHT_BROWSERS_PATH:${browsersPath}`
         : "playwright-default";
-  logger.debug("browser launched", { version: browser.version(), resolvedFrom });
+  logger.debug("browser launched", {
+    version: browser.version(),
+    resolvedFrom,
+  });
   return { browser, resolvedFrom };
 }
 
@@ -90,7 +95,9 @@ export async function createContext(
     bypassCSP: false,
     // Service workers make captures non-deterministic across runs.
     serviceWorkers: "block",
-    ...(storageStatePath !== undefined ? { storageState: storageStatePath } : {}),
+    ...(storageStatePath !== undefined
+      ? { storageState: storageStatePath }
+      : {}),
   });
   context.setDefaultTimeout(config.browser.navigationTimeoutMs);
   context.setDefaultNavigationTimeout(config.browser.navigationTimeoutMs);
