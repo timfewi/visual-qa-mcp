@@ -893,8 +893,18 @@ export class VisualQaService {
     };
     await this.store.writeManifest(manifest);
 
-    const { browser, resolvedFrom } = await this.browserLauncher(this.config, this.logger);
-    this.logger.debug("capture run started", { runId, operation, browser: resolvedFrom });
+    let launchedBrowser: Awaited<ReturnType<BrowserLauncher>> | undefined;
+    const getBrowser = async () => {
+      if (launchedBrowser === undefined) {
+        launchedBrowser = await this.browserLauncher(this.config, this.logger);
+        this.logger.debug("capture run started", {
+          runId,
+          operation,
+          browser: launchedBrowser.resolvedFrom,
+        });
+      }
+      return launchedBrowser.browser;
+    };
     const captures: Capture[] = [];
     const findings: Finding[] = [];
     let step = 0;
@@ -909,7 +919,7 @@ export class VisualQaService {
         });
 
         const evidence = await captureTarget(
-          browser,
+          getBrowser,
           {
             runId,
             route: target.route,
@@ -941,8 +951,36 @@ export class VisualQaService {
         const visionFindings = await this.runVisionReview(runId, captures, findings, designBrief);
         findings.push(...visionFindings);
       }
+    } catch (error) {
+      const partialFindings = sortFindings(findings);
+      const failedManifest: RunManifest = {
+        ...manifest,
+        status: "failed",
+        finishedAt: new Date().toISOString(),
+        captures: captures.map((capture) => ({
+          id: capture.id,
+          route: capture.route,
+          scenario: capture.scenario,
+          viewport: capture.viewport,
+          status: capture.status,
+          url: capture.url,
+          durationMs: capture.durationMs,
+          ...(capture.error !== undefined ? { error: capture.error } : {}),
+        })),
+        findingCount: partialFindings.length,
+        findingsBySeverity: severityCounts(partialFindings),
+        findingsByCategory: categoryCounts(partialFindings),
+        errors: [...warnings, "Capture run stopped before completion."],
+        artifacts: captures.flatMap((capture) => capture.artifacts),
+      };
+      await Promise.allSettled([
+        this.store.writeFindings(runId, partialFindings),
+        this.store.writeCaptures(runId, captures),
+      ]);
+      await this.store.writeManifest(failedManifest).catch(() => undefined);
+      throw error;
     } finally {
-      await browser.close().catch(() => undefined);
+      await launchedBrowser?.browser.close().catch(() => undefined);
       await preview?.stop();
     }
 

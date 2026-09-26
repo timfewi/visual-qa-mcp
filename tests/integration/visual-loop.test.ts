@@ -338,7 +338,13 @@ describe.skipIf(skip)("security posture", () => {
         }),
       );
       try {
-        const service = await VisualQaService.create({ configPath, logger });
+        const service = await VisualQaService.create({
+          configPath,
+          logger,
+          browserLauncher: async () => {
+            throw new Error("Blocked navigation must not launch Chromium");
+          },
+        });
         const run = await service.inspect({});
         expect(run.status).toBe("failed");
         expect(run.captures[0]?.status).toBe("failed");
@@ -366,7 +372,13 @@ describe.skipIf(skip)("security posture", () => {
         }),
       );
       try {
-        const service = await VisualQaService.create({ configPath, logger });
+        const service = await VisualQaService.create({
+          configPath,
+          logger,
+          browserLauncher: async () => {
+            throw new Error("Blocked navigation must not launch Chromium");
+          },
+        });
         const run = await service.inspect({ url: "https://example.com/", viewports: ["mobile"] });
         expect(run.captures[0]?.status).toBe("failed");
         expect(run.captures[0]?.error).toContain("allowedHosts");
@@ -380,4 +392,34 @@ describe.skipIf(skip)("security posture", () => {
     },
     TEST_TIMEOUT,
   );
+});
+
+test("marks a capture run failed when Chromium cannot launch", async () => {
+  const storageRoot = await mkdtemp(path.join(tmpdir(), "visual-qa-launch-failure-"));
+  const configPath = path.join(storageRoot, "visual-qa.config.json");
+  await Bun.write(
+    configPath,
+    JSON.stringify({
+      baseUrl: "http://127.0.0.1:54321",
+      routes: [{ path: "/" }],
+      viewports: [{ name: "mobile", width: 375, height: 812 }],
+      storage: { root: storageRoot },
+    }),
+  );
+  const service = await VisualQaService.create({
+    configPath,
+    logger,
+    browserLauncher: async () => {
+      throw new Error("Chromium unavailable");
+    },
+  });
+
+  await expect(service.inspect({})).rejects.toThrow("Chromium unavailable");
+  const runs = await service.storeInstance.listRuns();
+  expect(runs).toHaveLength(1);
+  const runId = runs[0]?.id ?? "";
+  expect(runId).not.toBe("");
+  const manifest = await service.storeInstance.readManifest(runId);
+  expect(manifest.status).toBe("failed");
+  expect(manifest.finishedAt).toBeDefined();
 });

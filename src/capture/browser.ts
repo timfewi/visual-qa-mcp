@@ -46,9 +46,13 @@ export async function launchBrowser(
     args: [...DETERMINISTIC_LAUNCH_ARGS],
     timeout: config.browser.launchTimeoutMs,
     ...(executablePath !== undefined ? { executablePath } : {}),
+    // The full Chromium build uses the same pinned browser revision and avoids
+    // intermittent DevTools pipe disconnects from the headless-shell binary.
     ...(config.browser.channel !== undefined
       ? { channel: config.browser.channel }
-      : {}),
+      : executablePath === undefined
+        ? { channel: "chromium" }
+        : {}),
   };
 
   const browser = await chromium.launch(launchOptions);
@@ -95,9 +99,7 @@ export async function createContext(
     bypassCSP: false,
     // Service workers make captures non-deterministic across runs.
     serviceWorkers: "block",
-    ...(storageStatePath !== undefined
-      ? { storageState: storageStatePath }
-      : {}),
+    ...(storageStatePath !== undefined ? { storageState: storageStatePath } : {}),
   });
   context.setDefaultTimeout(config.browser.navigationTimeoutMs);
   context.setDefaultNavigationTimeout(config.browser.navigationTimeoutMs);

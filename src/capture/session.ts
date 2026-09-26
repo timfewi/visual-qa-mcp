@@ -94,7 +94,7 @@ export function captureIdentity(
  * matrix.
  */
 export async function captureTarget(
-  browser: Browser,
+  getBrowser: () => Promise<Browser>,
   request: CaptureRequest,
   dependencies: CaptureDependencies,
 ): Promise<CaptureEvidence> {
@@ -134,6 +134,7 @@ export async function captureTarget(
   }
 
   const safeUrl = sanitizeUrlForStorage(url);
+  const browser = await getBrowser();
   const collector = new RuntimeCollector(redaction);
   const handle = await createContext(
     browser,

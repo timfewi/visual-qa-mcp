@@ -2,6 +2,7 @@
   "name": "visual-qa-mcp",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "An MCP server for evidence-backed visual QA of web interfaces.",
   "type": "module",
   "packageManager": "bun@1.3.13",
@@ -23,7 +24,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
-    "test": "bun test",
+    "test": "bun test --parallel=3 --parallel-delay=0",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

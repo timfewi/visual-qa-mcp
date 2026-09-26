@@ -1,5 +1,7 @@
 # visual-qa-mcp
 
+Official source: <https://github.com/timfewi/visual-qa-mcp>.
+
 An MCP server that gives coding agents a closed, evidence-backed visual QA loop
 for browser-based user interfaces: inspect a running application, read compact
 findings with screenshots, fix one thing, and recheck only the evidence that the
@@ -28,15 +30,22 @@ Node-based and Nix-friendly; Chromium is always supplied by the environment
 ```sh
 nix develop
 bun install --frozen-lockfile
-bun run check          # biome lint + tsc --noEmit + bun test
+bun run check          # biome lint + tsc --noEmit + bun run test
 bun run build          # tsc -p tsconfig.build.json -> dist/
 ```
+
+Use `bun run test` to run the complete suite. It starts three Bun worker
+processes immediately, keeping the browser integration suites in separate
+processes. With the pinned Bun version, the shared-process `bun test` run can
+lose Chromium's DevTools pipe and hang during screenshots. The worker run
+executes all tests with the same assertions and timeouts. For a focused check,
+`bun test tests/integration/visual-loop.test.ts` runs that suite directly.
 
 Repository-wide checks are declared in `.project-checks.json`:
 
 ```sh
 project-check fast     # nix fmt --ci, statix, deadnix, bun run check, build
-project-check full     # additionally: nix flake check
+project-check full     # nix flake check; run fast separately
 ```
 
 Browser-backed integration tests are skipped with an explicit diagnostic when no
@@ -194,3 +203,9 @@ wins) and never downloads browsers. `nix flake check` builds it.
 
 Note: Nix flakes only see git-tracked files. Build or check the package after
 the sources are committed, or use a path reference (`nix build path:.#default`).
+
+## License
+
+MIT. See [LICENSE](LICENSE). The package manifest keeps `private: true` to
+prevent accidental publication to npm; it does not restrict use of the GitHub
+repository under the MIT license.
