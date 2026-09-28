@@ -32,7 +32,7 @@ import { classifyRecheck, type RecheckOutcome } from "./domain/status.js";
 import type { Logger } from "./logging.js";
 import { RunStore } from "./storage/run-store.js";
 import { captureTarget, resolveRouteUrl, type CaptureEvidence } from "./capture/session.js";
-import { launchBrowser, type BrowserLaunchResult } from "./capture/browser.js";
+import { closeBrowser, launchBrowser, type BrowserLaunchResult } from "./capture/browser.js";
 import { approveBaselines, compareAgainstBaseline } from "./compare/baseline.js";
 import { renderAnnotation, type AnnotationMarker } from "./annotate/annotate.js";
 import { renderReport } from "./annotate/report.js";
@@ -980,7 +980,9 @@ export class VisualQaService {
       await this.store.writeManifest(failedManifest).catch(() => undefined);
       throw error;
     } finally {
-      await launchedBrowser?.browser.close().catch(() => undefined);
+      if (launchedBrowser !== undefined) {
+        await closeBrowser(launchedBrowser.browser, this.logger);
+      }
       await preview?.stop();
     }
 

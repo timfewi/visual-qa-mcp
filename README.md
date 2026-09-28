@@ -30,7 +30,7 @@ Node-based and Nix-friendly; Chromium is always supplied by the environment
 ```sh
 nix develop
 bun install --frozen-lockfile
-bun run check          # biome lint + tsc --noEmit + bun run test
+bun run check          # biome format/lint + tsc --noEmit + bun run test
 bun run build          # tsc -p tsconfig.build.json -> dist/
 ```
 

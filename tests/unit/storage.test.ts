@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -38,6 +38,41 @@ describe("run store", () => {
     const store = await makeStore();
     expect(() => store.resolveArtifactPath("run_1", "../../etc/passwd")).toThrow(StorageError);
     await expect(store.readArtifactFile("run_1", "../../secret.txt")).rejects.toThrow(StorageError);
+  });
+
+  test("refuses run IDs that escape the runs directory", async () => {
+    const store = await makeStore();
+    expect(() => store.run("../outside")).toThrow(StorageError);
+    expect(() => store.run("/outside")).toThrow(StorageError);
+    await expect(store.writeManifest({ ...CREATED_MANIFEST, id: "../outside" })).rejects.toThrow(
+      StorageError,
+    );
+  });
+
+  test("does not prune a path named by a forged manifest ID", async () => {
+    const store = await makeStore();
+    const victimDir = path.join(store.paths.root, "victim");
+    await mkdir(victimDir);
+    await writeFile(path.join(victimDir, "sentinel"), "keep");
+    const forgedDir = path.join(store.paths.runsDir, "run_forged");
+    await mkdir(forgedDir);
+    await writeFile(
+      path.join(forgedDir, "manifest.json"),
+      JSON.stringify({
+        ...CREATED_MANIFEST,
+        id: "../victim",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+    await store.writeManifest({
+      ...CREATED_MANIFEST,
+      id: "run_valid",
+      createdAt: "2026-01-02T00:00:00.000Z",
+    });
+
+    expect((await store.listRuns()).map((run) => run.id)).toEqual(["run_valid"]);
+    await store.pruneRuns(1);
+    expect(await readFile(path.join(victimDir, "sentinel"), "utf8")).toBe("keep");
   });
 
   test("round-trips manifests, captures and findings", async () => {

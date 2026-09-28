@@ -98,6 +98,8 @@
         visual-qa-mcp = visualQaMcp;
       };
 
+      checks.${system}.package = visualQaMcp;
+
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           bashInteractive

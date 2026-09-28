@@ -17,6 +17,8 @@ import {
   runManifestSchema,
 } from "../domain/schema.js";
 
+const RUN_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 export class StorageError extends Error {
   constructor(message: string) {
     super(message);
@@ -75,6 +77,9 @@ export class RunStore {
 
   /** Per-run path set. */
   run(id: string): RunPaths {
+    if (!RUN_ID_PATTERN.test(id)) {
+      throw new StorageError("Invalid run ID.");
+    }
     const runDir = path.join(this.paths.runsDir, id);
     return {
       runDir,
@@ -195,9 +200,15 @@ export class RunStore {
     }
     const listings: RunListing[] = [];
     for (const entry of entries) {
+      if (!RUN_ID_PATTERN.test(entry)) {
+        continue;
+      }
       try {
         const raw = await readJson(path.join(this.paths.runsDir, entry, "manifest.json"));
         const manifest = runManifestSchema.parse(raw);
+        if (manifest.id !== entry) {
+          continue;
+        }
         listings.push({
           id: manifest.id,
           createdAt: manifest.createdAt,
@@ -215,7 +226,7 @@ export class RunStore {
     const removable = runs.filter((run) => run.status !== "running").slice(Math.max(keep, 1));
     const removed: string[] = [];
     for (const run of removable) {
-      await rm(path.join(this.paths.runsDir, run.id), { recursive: true, force: true });
+      await rm(this.run(run.id).runDir, { recursive: true, force: true });
       removed.push(run.id);
     }
     return removed;

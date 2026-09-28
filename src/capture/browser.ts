@@ -69,6 +69,45 @@ export async function launchBrowser(
   return { browser, resolvedFrom };
 }
 
+/** Keep an unresponsive Playwright close from blocking completed captures. */
+export async function closeBrowser(browser: Browser, logger: Logger): Promise<void> {
+  if (!browser.isConnected()) {
+    return;
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let onDisconnected: (() => void) | undefined;
+  const disconnected = new Promise<"disconnected">((resolve) => {
+    onDisconnected = () => resolve("disconnected");
+    browser.once("disconnected", onDisconnected);
+  });
+  const timeout = new Promise<"timeout">((resolve) => {
+    timer = setTimeout(() => resolve("timeout"), 5_000);
+  });
+
+  try {
+    const outcome = await Promise.race([
+      browser.close().then(
+        () => "closed" as const,
+        () => {
+          logger.warn("browser close failed");
+          return "error" as const;
+        },
+      ),
+      disconnected,
+      timeout,
+    ]);
+    if (outcome === "timeout") {
+      logger.warn("browser close timed out", { connected: browser.isConnected() });
+    }
+  } finally {
+    clearTimeout(timer);
+    if (onDisconnected !== undefined) {
+      browser.off("disconnected", onDisconnected);
+    }
+  }
+}
+
 export interface ContextHandle {
   readonly context: BrowserContext;
   close(): Promise<void>;

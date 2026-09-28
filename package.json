@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check": "bun run lint && bun run typecheck && bun run test",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
