@@ -13,7 +13,7 @@
 - Bun is the package manager and the test runner (`bun install`,
   `bun run check`, `bun test`). Use `bun install --frozen-lockfile` when the
   lockfile must not change.
-- `nix develop` is the verified development route: it provides Bun, Node 22,
+- `nix develop` is the verified development route: it provides Bun, Node 24,
   Biome, the Nix linters and the Playwright browser build. Chromium always comes
   from `PLAYWRIGHT_BROWSERS_PATH`; never call `playwright install`.
 - Lint and format with Biome (provided by the dev shell, not a dependency), and
