@@ -158,6 +158,9 @@ Defaults are restrictive and every relaxation is explicit:
   together with an explicit allowlist relaxes this.
 - **Only `http` and `https` are navigable.** `file:`, `data:`, `blob:`,
   `javascript:` and friends are refused before the browser starts.
+- **Preview readiness uses the same URL policy.** An unsafe `preview.url` is
+  refused before its command starts, and the readiness request does not follow
+  redirects.
 - **Requests are intercepted.** With `blockRequestsToOtherOrigins: true`
   (default), any request leaving the allowed origin set is aborted, so a
   captured page cannot pull in third-party assets or be redirected off-site.

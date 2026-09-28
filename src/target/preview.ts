@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 
 import type { VisualQaConfig } from "../config/schema.js";
 import type { Logger } from "../logging.js";
+import { assertNavigationAllowed } from "../security/url-guard.js";
 
 export interface PreviewServer {
   readonly url: string;
@@ -39,6 +40,7 @@ export async function startPreview(config: VisualQaConfig, logger: Logger): Prom
   if (command === undefined) {
     throw new PreviewStartupError("preview.command must not be empty", "");
   }
+  assertNavigationAllowed(preview.url, config.security);
 
   const child: ChildProcess = spawn(command, args, {
     cwd: preview.cwd ?? process.cwd(),
@@ -91,11 +93,11 @@ export async function startPreview(config: VisualQaConfig, logger: Logger): Prom
         output,
       );
     }
-    if (await isReachable(preview.url)) {
+    if (await isReachable(preview.url, deadline)) {
       logger.info("preview server ready", { url: preview.url });
       return { url: preview.url, command: preview.command.join(" "), output: () => output, stop };
     }
-    await delay(250);
+    await delay(Math.min(250, Math.max(0, deadline - Date.now())));
   }
 
   await stop();
@@ -105,11 +107,19 @@ export async function startPreview(config: VisualQaConfig, logger: Logger): Prom
   );
 }
 
-async function isReachable(url: string): Promise<boolean> {
+async function isReachable(url: string, deadline: number): Promise<boolean> {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) {
+    return false;
+  }
   try {
-    const response = await fetch(url, { method: "GET", redirect: "manual" });
-    await response.arrayBuffer().catch(() => undefined);
-    return response.status > 0;
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(remaining),
+    });
+    await response.body?.cancel();
+    return response.status > 0 && Date.now() < deadline;
   } catch {
     return false;
   }
