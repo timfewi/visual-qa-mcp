@@ -16,9 +16,31 @@
         "type": "github"
       }
     },
+    "project-check": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790788690,
+        "narHash": "sha256-c4Y5939qiLEg28dALcAXJmyccbjemhkBQ0fR+RZ8Iwg=",
+        "owner": "timfewi",
+        "repo": "project-check-nix",
+        "rev": "f70de45d69b9ca9a31f5b9f94e316ac6e43e514e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "timfewi",
+        "repo": "project-check-nix",
+        "rev": "f70de45d69b9ca9a31f5b9f94e316ac6e43e514e",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "project-check": "project-check"
       }
     }
   },

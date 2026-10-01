@@ -44,12 +44,16 @@ executes all tests with the same assertions and timeouts. For a focused check,
 Repository-wide checks are declared in `.project-checks.json`:
 
 ```sh
-project-check fast     # nix fmt --ci, statix, deadnix, bun run check, build
+project-check fast     # format/lint, both native outputs, sources/tool versions, check, build
 project-check full     # nix flake check; run fast separately
 ```
 
 Browser-backed integration tests are skipped with an explicit diagnostic when no
 Chromium is available, for example outside `nix develop`.
+The source check still fails if declared Bun or Playwright versions differ from
+the pinned Nix tools, so a mismatched browser revision cannot silently skip
+integration coverage. The development shell includes the shared project-check
+runner on both supported Linux platforms.
 
 ## MCP surface
 
@@ -201,8 +205,26 @@ with the `mcp` subcommand. The wrapper uses Node, sets
 `PLAYWRIGHT_BROWSERS_PATH` as a *default* (so an externally supplied value still
 wins) and never downloads browsers. `nix flake check` builds it.
 
-Note: Nix flakes only see git-tracked files. Build or check the package after
-the sources are committed, or use a path reference (`nix build path:.#default`).
+Packages, development shells, formatters and checks are provided natively for
+`x86_64-linux` and `aarch64-linux`. The fast gate evaluates both without building
+the server or browsers. Executing ARM64 packages requires an ARM64 machine or
+builder.
+
+`nix/sources.nix` selects only the package manifests, TypeScript configurations,
+license and regular TypeScript files under `src/`. Dependency fetching uses only
+`package.json` and `bun.lock`: application, documentation and runtime changes do
+not alter its source. The regression check verifies both inventories, cache,
+symlink and FIFO exclusions, and source-path changes for real code/lock edits.
+
+The `bun-deps` package fetches locked dependencies without browser downloads or
+lifecycle scripts. Its CPU selection and hashes are separate for x86-64 and ARM64
+because TypeScript includes a native compiler. Build `nix build .#bun-deps` to
+verify the native dependency hash independently of the full server/browser
+closure. Update both hashes in `nix/dependency-hashes.nix` when dependencies change.
+The installed package also includes this project's MIT license.
+
+Flake commands and Direnv use Git-index files. Stage authorized new source files
+before evaluation; caches and captured evidence stay outside the index.
 
 ## License
 

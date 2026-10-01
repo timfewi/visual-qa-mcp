@@ -134,9 +134,44 @@ Do not begin by implementing every feature at once. Establish schemas, boundarie
 - Add integration tests for capture and MCP transport.
 - Ensure tests prove refusal and redaction behavior, not only happy paths.
 - Avoid snapshots for business logic; reserve image snapshots for visual evidence.
-- Run `pnpm check`, `pnpm build`, `project-check fast`, and `project-check full` before handoff.
+- Run `bun run check`, `bun run build`, `project-check fast`, and `project-check full` before handoff. Full package/browser builds are separate from the fast gate.
 - Update `README.md` with verified commands and an architecture summary as implementation becomes real.
 
 Before writing code, inspect the repository instructions, verify the installed dependency APIs from primary documentation, and propose the first vertical slice with explicit acceptance criteria. Then implement it fully rather than leaving placeholder behavior.
 
 ---
+
+## Native Linux packaging checkpoint — 2026-10-01
+
+The previous package and dependency fetcher used the complete checkout as their
+source, and the flake exported only x86-64 Linux. `nix/sources.nix` now selects
+regular TypeScript sources and build inputs separately from the two dependency
+manifests. Native packages, shells, formatters and checks cover x86-64 and ARM64
+Linux, with the shared project-check runner included in each shell.
+
+Reproduced the declared Playwright SDK expecting Chromium revision 1228 while
+the pinned Nix browser supplied revision 1243. Playwright moved to 1.63.0 and
+the Bun declaration to 1.4.2, matching the existing Nix tool versions. Nixpkgs,
+TypeScript and the other direct dependencies retain their pins. The new source
+check rejects version mismatches before browser availability can hide them.
+
+`packages/bun-deps.nix` explicitly selects Linux and the target CPU, disables
+lifecycle scripts and browser downloads, and uses a temporary cache. The two
+hashes were derived from locked installs and verified by small Nix dependency
+fetches with cached x86-64 tools. The ARM64 verification fetched and hashed its
+compiler binary without executing it; it is not native ARM64 execution.
+
+The fast gate passed with 129 tests, including real Chromium and MCP integration,
+with no browser skips. Format/lint, TypeScript, compilation, both Linux output
+evaluations, exact source inventories and cache/source/lockfile regressions also
+passed. The tracked-source privacy scan completed with zero findings.
+
+The actual emitted package build/install phases also passed from the filtered
+Nix source with cached dependencies and makeWrapper in a private fixture. The
+resulting wrapper includes the license, completes a stdio SDK handshake and
+returns the expected unconfigured status tool. Toolbox/meter forwarding of its
+CLI help preserved stdout/stderr and exact byte counts in a mode-0600 log.
+
+No full server or browser builds, ARM64 execution, host activation, Direnv approval
+or Git-history audit were performed. Next: review consuming tool pins and the
+remaining canonical flakes for platform and source assumptions.
