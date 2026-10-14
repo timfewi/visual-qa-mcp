@@ -6,7 +6,11 @@
   before handoff. Checks are declared in `.project-checks.json` and never run on
   their own.
 - Missing tools or offline dependencies are environment blockers, not failures.
-- Do not stage, commit, push, publish or deploy without explicit authorization.
+- Task-scoped staging is authorized. After review and required checks, commit
+  the task changes and push to the current branch's existing upstream. Preserve
+  unrelated work.
+- Deployment, activation, installation, releases, visibility changes and history
+  rewrites require separate authorization.
 
 ## Toolchain
 
