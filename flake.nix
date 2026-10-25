@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f";
     project-check = {
-      url = "github:timfewi/project-check-nix/f70de45d69b9ca9a31f5b9f94e316ac6e43e514e";
+      url = "github:timfewi/project-check-nix/56962fbd92f992938f39b44b2590adf843ebe757";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
