@@ -1,8 +1,7 @@
 # Workflows
 
-Two end-to-end workflows, plus the security model that applies to both. Both
-assume the MCP server is registered with `visual-qa-mcp mcp` over stdio and that
-`nix develop` provides Chromium through `PLAYWRIGHT_BROWSERS_PATH`.
+These workflows use `visual-qa-mcp mcp` over stdio. The Nix package and development
+shell supply Chromium through `PLAYWRIGHT_BROWSERS_PATH`.
 
 ## 1. Astro landing page (code-owned, localhost)
 

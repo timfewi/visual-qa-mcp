@@ -1,70 +1,73 @@
 {
-  "version": 1,
+  "version": 2,
   "checks": [
     {
       "name": "nix-format",
-      "argv": ["nix", "fmt", "--offline", "--no-write-lock-file", "--", "--ci"],
-      "requires": ["nix"],
+      "argv": ["just", "nix-format"],
+      "requires": ["just", "nix"],
       "timeout_seconds": 120,
       "profiles": ["fast"]
     },
     {
       "name": "flake-eval",
-      "argv": [
-        "nix",
-        "flake",
-        "check",
-        "--offline",
-        "--all-systems",
-        "--no-build",
-        "--no-write-lock-file",
-        "."
-      ],
-      "requires": ["nix"],
+      "argv": ["just", "flake-eval"],
+      "requires": ["just", "nix"],
       "timeout_seconds": 120,
       "profiles": ["fast"]
     },
     {
       "name": "source-filter",
-      "argv": ["python3", "-I", "-B", "scripts/check_source_filter.py"],
-      "requires": ["python3", "nix"],
+      "argv": ["just", "source-filter"],
+      "requires": ["just", "python3", "nix"],
       "timeout_seconds": 120,
       "profiles": ["fast"]
     },
     {
       "name": "statix",
-      "argv": ["statix", "check", "."],
-      "requires": ["statix"],
+      "argv": ["just", "statix"],
+      "requires": ["just", "statix"],
       "timeout_seconds": 120,
       "profiles": ["fast"]
     },
     {
       "name": "deadnix",
-      "argv": ["deadnix", "--fail", "."],
-      "requires": ["deadnix"],
+      "argv": ["just", "deadnix"],
+      "requires": ["just", "deadnix"],
       "timeout_seconds": 120,
       "profiles": ["fast"]
     },
     {
       "name": "bun-check",
-      "argv": ["bun", "run", "check"],
-      "requires": ["bun"],
+      "argv": ["just", "check"],
+      "requires": ["just", "bun"],
       "timeout_seconds": 600,
       "profiles": ["fast"]
     },
     {
       "name": "build",
-      "argv": ["bun", "run", "build"],
-      "requires": ["bun"],
+      "argv": ["just", "build"],
+      "requires": ["just", "bun"],
       "timeout_seconds": 300,
       "profiles": ["fast"]
     },
     {
       "name": "flake-check",
-      "argv": ["nix", "flake", "check", "--offline", "--no-write-lock-file", "."],
-      "requires": ["nix"],
+      "argv": ["just", "verify"],
+      "requires": ["just", "nix"],
       "timeout_seconds": 1800,
-      "profiles": ["full"]
+      "profiles": ["full"],
+      "expected_warnings": [
+        {
+          "message": "warning: The check omitted these incompatible systems: aarch64-linux",
+          "reason": "The full gate builds on x86_64-linux. The fast gate evaluates both Linux outputs.",
+          "max_count": 1
+        },
+        {
+          "message": "warning: The check omitted these incompatible systems: x86_64-linux",
+          "reason": "The full gate builds on aarch64-linux. The fast gate evaluates both Linux outputs.",
+          "max_count": 1
+        }
+      ]
     }
   ],
   "watch_ignore": [

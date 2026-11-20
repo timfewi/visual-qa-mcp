@@ -2,9 +2,9 @@
 
 - Keep credentials, personal data and runtime state outside Git.
 - Preserve existing user changes. Write documentation and CLI text in English.
-- Run `project-check fast` after meaningful changes and `project-check full`
-  before handoff. Checks are declared in `.project-checks.json` and never run on
-  their own.
+- Run `just lint` after meaningful changes and `just verify` before handoff.
+  An external `project-check` runner uses the same recipes through
+  `.project-checks.json`. Run checks explicitly.
 - Missing tools or offline dependencies are environment blockers, not failures.
 - Task-scoped staging is authorized. After review and required checks, commit
   the task changes and push to the current branch's existing upstream. Preserve
@@ -34,4 +34,5 @@
 - `packages/bun-deps.nix` fixes Linux and the selected CPU explicitly. Regenerate
   both hashes in `nix/dependency-hashes.nix` after dependency changes; TypeScript
   includes architecture-specific binaries. Dependency fetching does not render
-  or build Chromium. Keep multi-session checkpoints in `HANDOFF.md`.
+  or build Chromium.
+- For work that spans sessions, keep a temporary checkpoint in `HANDOFF.md`.

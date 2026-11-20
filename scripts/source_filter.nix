@@ -23,12 +23,10 @@ let
       pkgs = flake.inputs.nixpkgs.legacyPackages.${system};
       package = flake.packages.${system}.default;
       shell = flake.devShells.${system}.default;
-      runner = flake.inputs.project-check.packages.${system}.project-check;
     in
     assert package.system == system;
     assert shell.system == system;
-    assert runner.system == system;
-    assert builtins.elem runner shell.nativeBuildInputs;
+    assert builtins.elem pkgs.just shell.nativeBuildInputs;
     assert flake.formatter.${system}.system == system;
     assert flake.checks.${system}.package == package;
     assert package.bunDeps == flake.packages.${system}.bun-deps;

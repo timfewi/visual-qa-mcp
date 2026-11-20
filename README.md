@@ -2,14 +2,27 @@
 
 Official source: <https://github.com/timfewi/visual-qa-mcp>.
 
-An MCP server that gives coding agents a closed, evidence-backed visual QA loop
-for browser-based user interfaces: inspect a running application, read compact
-findings with screenshots, fix one thing, and recheck only the evidence that the
-fix could affect.
+A standalone CLI and stdio MCP server for visual QA of web applications. Inspect
+a running application, read findings with screenshots, and recheck the affected
+routes, scenarios and viewports after a fix. Every finding records the evidence
+behind it.
 
-The implementation follows [HANDOFF.md](HANDOFF.md). The tool surface is
-deliberately small, the domain layer is transport-independent, and every finding
-records which evidence produced it.
+## Run with Nix
+
+On Linux, create a [configuration](#configuration) in the target project and run
+these commands from its directory.
+
+```sh
+nix run github:timfewi/visual-qa-mcp -- validate-config
+nix run github:timfewi/visual-qa-mcp -- inspect --json
+```
+
+For a stdio MCP client, use `nix` as the command and
+`["run", "github:timfewi/visual-qa-mcp", "--", "mcp"]` as its arguments. Set the
+working directory to the target project. If the client starts the server from a
+different directory, pass an absolute `--config` path and set `preview.cwd` to
+an absolute path when using a preview command. The server writes protocol messages
+to stdout and diagnostics to stderr.
 
 ## Intended stack
 
@@ -30,8 +43,8 @@ Node-based and Nix-friendly; Chromium is always supplied by the environment
 ```sh
 nix develop
 bun install --frozen-lockfile
-bun run check          # biome format/lint + tsc --noEmit + bun run test
-bun run build          # tsc -p tsconfig.build.json -> dist/
+just lint              # format, lint, type checks, tests, build and flake evaluation
+just verify            # build the native Nix package through nix flake check
 ```
 
 Use `bun run test` to run the complete suite. It starts three Bun worker
@@ -41,19 +54,12 @@ lose Chromium's DevTools pipe and hang during screenshots. The worker run
 executes all tests with the same assertions and timeouts. For a focused check,
 `bun test tests/integration/visual-loop.test.ts` runs that suite directly.
 
-Repository-wide checks are declared in `.project-checks.json`:
-
-```sh
-project-check fast     # format/lint, both native outputs, sources/tool versions, check, build
-project-check full     # nix flake check; run fast separately
-```
-
 Browser-backed integration tests are skipped with an explicit diagnostic when no
 Chromium is available, for example outside `nix develop`.
 The source check still fails if declared Bun or Playwright versions differ from
 the pinned Nix tools, so a mismatched browser revision cannot silently skip
-integration coverage. The development shell includes the shared project-check
-runner on both supported Linux platforms.
+integration coverage. An external `project-check` runner can invoke the same
+recipes through `.project-checks.json`.
 
 ## MCP surface
 
@@ -70,8 +76,7 @@ links. Long runs emit MCP progress notifications.
 
 ### CLI
 
-The same service is reachable from the command line, which keeps the domain layer
-honest about not depending on MCP:
+The CLI uses the same capture service as the MCP server.
 
 ```sh
 visual-qa-mcp mcp                       # stdio MCP server
@@ -142,7 +147,7 @@ explicitly, for example:
 ### Preview commands
 
 Instead of `baseUrl`, a target may let the server start its own preview process.
-The command is taken verbatim from configuration:
+The configured command runs as the server user and inherits its environment.
 
 ```json
 {
