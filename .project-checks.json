@@ -71,7 +71,10 @@
     }
   ],
   "watch_ignore": [
+    ".devenv",
     ".direnv",
+    ".tabula/state.json",
+    ".tabula/index.html",
     ".visual-qa",
     "coverage",
     "dist",

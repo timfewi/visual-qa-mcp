@@ -17,7 +17,8 @@
 - Bun is the package manager and the test runner (`bun install`,
   `bun run check`, `bun test`). Use `bun install --frozen-lockfile` when the
   lockfile must not change.
-- `nix develop` is the verified development route: it provides Bun, Node 24,
+- `devenv shell` and `nix develop` share the toolchain in `nix/dev-tools.nix`.
+  Both provide Bun, Node 24,
   Biome, the Nix linters and the Playwright browser build. Chromium always comes
   from `PLAYWRIGHT_BROWSERS_PATH`; never call `playwright install`.
 - Lint and format with Biome (provided by the dev shell, not a dependency), and
@@ -35,4 +36,6 @@
   both hashes in `nix/dependency-hashes.nix` after dependency changes; TypeScript
   includes architecture-specific binaries. Dependency fetching does not render
   or build Chromium.
+- Use [.tabula/ENTRY.md](.tabula/ENTRY.md) for repository orientation. Review
+  its linked sources when updating it, then run `tabula update .` and `tabula check .`.
 - For work that spans sessions, keep a temporary checkpoint in `HANDOFF.md`.

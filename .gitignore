@@ -1,4 +1,9 @@
 .direnv/
+.devenv/
+/.devenv.flake.nix
+/devenv.local.nix
+/devenv.local.yaml
+/.husky/_/
 result
 result-*
 __pycache__/
@@ -12,3 +17,7 @@ test-results/
 .env.*
 !.env.example
 .ast-index/
+
+# Generated Tabula files (local to this checkout).
+/.tabula/state.json
+/.tabula/index.html

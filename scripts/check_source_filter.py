@@ -46,6 +46,11 @@ def evaluate(project: Path, fixture: Path) -> dict:
 
 def main() -> None:
     project = Path(__file__).resolve().parent.parent
+    flake_lock = json.loads((project / "flake.lock").read_text())
+    devenv_lock = json.loads((project / "devenv.lock").read_text())
+    assert flake_lock["nodes"]["nixpkgs"]["locked"] == devenv_lock["nodes"]["nixpkgs"]["locked"], (
+        "Pin the same Nixpkgs toolchain in the flake and devenv"
+    )
     package_files = [
         "LICENSE",
         "bun.lock",
@@ -70,6 +75,8 @@ def main() -> None:
             "dist/index.js",
             "coverage/index.ts",
             "src/.visual-qa/private.ts",
+            "src/.devenv/cache.ts",
+            "src/.tabula/cache.ts",
             "src/node_modules/cache.ts",
             "README.md",
             "HANDOFF.md",

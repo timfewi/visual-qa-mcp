@@ -15,8 +15,10 @@ let
             part:
             builtins.elem part [
               ".ast-index"
+              ".devenv"
               ".direnv"
               ".git"
+              ".tabula"
               ".visual-qa"
               "node_modules"
               "dist"

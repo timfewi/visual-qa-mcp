@@ -25,6 +25,7 @@
             cpu = dependencyCpu;
             hash = dependencyHashes.${system};
           };
+          devTools = import ./nix/dev-tools.nix { inherit pkgs; };
           node = pkgs.nodejs_24;
           # An explicitly supplied browser path still overrides this default.
           playwrightBrowsers = pkgs.playwright-driver.browsers;
@@ -68,29 +69,7 @@
             bun-deps = bunDeps;
           };
           checks.package = visualQaMcp;
-          devShells.default = pkgs.mkShell {
-            packages = [
-              pkgs.bashInteractive
-              pkgs.biome
-              pkgs.bun
-              pkgs.cacert
-              pkgs.coreutils
-              pkgs.deadnix
-              pkgs.git
-              pkgs.jq
-              pkgs.just
-              pkgs.nixfmt
-              pkgs.nodejs_24
-              pkgs.playwright-driver.browsers
-              pkgs.python3
-              pkgs.ripgrep
-              pkgs.statix
-            ];
-            PLAYWRIGHT_BROWSERS_PATH = playwrightBrowsers;
-            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
-            SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-            NIX_SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-          };
+          devShells.default = pkgs.mkShell (devTools.env // { inherit (devTools) packages; });
           formatter = pkgs.nixfmt-tree;
         }
       );
